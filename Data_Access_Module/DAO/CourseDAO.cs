@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,11 +13,88 @@ namespace Data_Access_Module.DAO
     {
         private SqlConnection connection;
         private string tableName = "Courses";
+        private DataTable table;
+        private SqlDataAdapter dataAdapter;
 
         public CourseDAO()
         {
             this.connection = DbConnectionProvider.GetConnexion();
+            this.table = new DataTable(this.tableName);
+            this.dataAdapter = this.CreateDataAdapter();
         }
+
+        public DataTable GetDataTable()
+        {
+            return this.table;
+        }
+
+        public void ReloadDataTable()
+        {
+            this.table.Clear();
+            this.dataAdapter.Fill(table);
+        }
+
+        public void SaveChanges()
+        {
+            if (this.connection.State != ConnectionState.Open)
+            {
+                this.connection.Open();
+            }
+
+            this.dataAdapter.Update(table);
+
+        }
+
+        private SqlDataAdapter CreateDataAdapter()
+        {
+            SqlDataAdapter adapter = new SqlDataAdapter();
+
+            SqlCommand selectCommand = this.connection.CreateCommand();
+            selectCommand.CommandText = $"SELECT * FROM {this.tableName} ;";
+            adapter.SelectCommand = selectCommand;
+
+            SqlCommand insertCommand = this.connection.CreateCommand();
+            insertCommand.CommandText = $"INSERT INTO {this.tableName} (Name, Code, Duration) " +
+                $"VALUES (@name, @code, @duration);";
+
+            insertCommand.Parameters.Add("@name", SqlDbType.NVarChar, 164, "Name");
+            insertCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
+            insertCommand.Parameters.Add("@duration", SqlDbType.Int, 4, "Name");
+
+            adapter.InsertCommand = insertCommand;
+
+            SqlCommand updateCommand = this.connection.CreateCommand();
+            updateCommand.CommandText = $"UPDATE {this.tableName} SET Name = @name, Code = @code, " +
+                $"Duration = @duration " +
+                $"WHERE Id = @id " +
+                $"AND Name = @oldName " +
+                $"AND Code = @code " +
+                $"AND Duration = @oldDuration ;";
+
+            updateCommand.Parameters.Add("@name", SqlDbType.NVarChar, 164, "Name");
+            updateCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
+            updateCommand.Parameters.Add("@duration", SqlDbType.Int, 4, "Name");
+            updateCommand.Parameters.Add("@id", SqlDbType.Int, 4, "Id");
+            updateCommand.Parameters.Add("@oldName", SqlDbType.NVarChar, 164, "Name").SourceVersion = DataRowVersion.Original;
+            updateCommand.Parameters.Add("@oldCode", SqlDbType.NVarChar, 15, "Code").SourceVersion = DataRowVersion.Original;
+            updateCommand.Parameters.Add("@dolDuration", SqlDbType.Int, 4, "Name").SourceVersion = DataRowVersion.Original;
+
+            adapter.UpdateCommand = updateCommand;
+
+            SqlCommand deleteCommand = this.connection.CreateCommand();
+            deleteCommand = this.connection.CreateCommand();
+            deleteCommand.CommandText = $"DELETE * FROM {this.tableName} WHERE Id = @id";
+
+            deleteCommand.Parameters.Add("@id", SqlDbType.Int, 4, "Id");
+
+            adapter.DeleteCommand = deleteCommand;
+
+            return adapter;
+
+        }
+
+
+        /*
 
         public List<Course> GetAll(SqlTransaction? transaction = null)
         {
@@ -223,5 +301,7 @@ namespace Data_Access_Module.DAO
                 throw new Exception($"Failure to delete Course Id #{courseDto.Id}. No rows modified");
             }
         }
+
+        */
     }
 }

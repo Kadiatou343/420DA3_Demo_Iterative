@@ -49,9 +49,50 @@ namespace Data_Access_Module.DAO
         private SqlDataAdapter CreateDataAdapter()
         {
             SqlDataAdapter adapter = new SqlDataAdapter();
-            return adapter;
 
-            //config du DataAdapater a faire
+            SqlCommand selectCommand = this.connection.CreateCommand();
+            selectCommand.CommandText = $"SELECT * FROM {this.tableName} ;";
+            adapter.SelectCommand = selectCommand;
+
+            SqlCommand insertCommand = this.connection.CreateCommand();
+            insertCommand.CommandText = $"INSERT INTO {this.tableName} (FirstName, LastName, Code, RegistrationDate) " +
+                "VALUE (@firstName, @lastName, @code, @registrationDate);";
+
+            insertCommand.Parameters.Add("@firstName", SqlDbType.NVarChar, 64, "FirstName");
+            insertCommand.Parameters.Add("@lastName", SqlDbType.NVarChar, 64, "LastName");
+            insertCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
+            insertCommand.Parameters.Add("@registrationDate", SqlDbType.DateTime2, 7, "RegistrationDate");
+
+            adapter.InsertCommand = insertCommand;
+
+            SqlCommand updateCommand = this.connection.CreateCommand();
+            updateCommand.CommandText = $"UPDATE {this.tableName} SET FirstName = @firstName ,LastName = @lastName ,Code = @code ,RegistrationDate = @registrationDate " +
+                $"WHERE Id = @id " +
+                $"AND FirstName = @oldFirtName " +
+                $"AND LastName = @oldLastName " +
+                $"AND Code = @oldCode " +
+                $"AND RegistrationDate = @oldRegistrationDate;";
+
+            updateCommand.Parameters.Add("@firstName", SqlDbType.NVarChar, 64, "FirstName");
+            updateCommand.Parameters.Add("@lastName", SqlDbType.NVarChar, 64, "LastName");
+            updateCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
+            updateCommand.Parameters.Add("@registrationDate", SqlDbType.DateTime2, 7, "RegistrationDate");
+            updateCommand.Parameters.Add("@id", SqlDbType.Int, 4, "Id");
+            updateCommand.Parameters.Add("@oldFirstName", SqlDbType.NVarChar, 64, "FirstName").SourceVersion = DataRowVersion.Original;
+            updateCommand.Parameters.Add("@oldLastName", SqlDbType.NVarChar, 64, "LastName").SourceVersion = DataRowVersion.Original;
+            updateCommand.Parameters.Add("@oldCode", SqlDbType.NVarChar, 15, "Code").SourceVersion = DataRowVersion.Original;
+            updateCommand.Parameters.Add("@oldRegistrationDate", SqlDbType.DateTime2, 7, "RegistrationDate").SourceVersion = DataRowVersion.Original;
+
+            adapter.UpdateCommand = updateCommand;
+
+            SqlCommand deleteCommand = this.connection.CreateCommand();
+            deleteCommand.CommandText = $"DELETE FROM {this.tableName} WHERE Id = @id;";
+
+            deleteCommand.Parameters.Add("@id", SqlDbType.Int, 4, "Id");
+
+            adapter.DeleteCommand = deleteCommand;
+
+            return adapter;
 
         }
 

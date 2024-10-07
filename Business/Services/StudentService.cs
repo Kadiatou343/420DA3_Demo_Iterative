@@ -23,7 +23,7 @@ namespace _420DA3_Demo_Iterative.Services
 
         public void OpenStudentWindow()
         {
-            this.window.Show();
+            this.window.ShowDialog();
         }
 
         public DataTable GetStudentTable()

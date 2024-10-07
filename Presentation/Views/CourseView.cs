@@ -1,4 +1,4 @@
-﻿using _420DA3_Demo_Iterative.Services;
+﻿using _420DA3_Demo_Iterative.Business.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,14 +11,14 @@ using System.Windows.Forms;
 
 namespace _420DA3_Demo_Iterative.Presentation.Views
 {
-    public partial class StudentView : Form
+    public partial class CourseView : Form
     {
-        private StudentService studentService;
-        public StudentView(StudentService service)
+        private CourseServices courseServices;
+        public CourseView(CourseServices courseServices)
         {
-            this.studentService = service;
             InitializeComponent();
-            this.tableView.DataSource = this.studentService.GetStudentTable();
+            this.courseServices = courseServices;
+            this.tableView.DataSource = this.courseServices.GetCourseTable();
         }
 
         private void buttonExit_Click(object sender, EventArgs e)
@@ -28,12 +28,12 @@ namespace _420DA3_Demo_Iterative.Presentation.Views
 
         private void buttonSave_Click(object sender, EventArgs e)
         {
-            this.studentService.SaveChanges();
+            this.courseServices.SaveChanges();
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private void buttonReload_Click(object sender, EventArgs e)
         {
-            this.studentService.ReloadStudentTable();
+            this.courseServices.ReloadCourseTable();
         }
     }
 }
