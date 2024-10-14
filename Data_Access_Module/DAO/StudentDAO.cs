@@ -33,6 +33,33 @@ namespace Data_Access_Module.DAO
         {
             this.table.Clear();
             this.dataAdapter.Fill(table);
+
+            DataColumn idColumn = this.table.Columns["Id"] ?? throw new Exception("Colonne 'Id' non trouvee dans la dataTable!");
+            DataColumn firstNameColumn = this.table.Columns["FirstName"] ?? throw new Exception("Colonne 'FirstName' non trouvee dans la dataTable!");
+            DataColumn lastNameColumn = this.table.Columns["LastName"] ?? throw new Exception("Colonne 'LastName' non trouvee dans la dataTable!");
+            DataColumn codeColumn = this.table.Columns["Code"] ?? throw new Exception("Colonne 'Code' non trouvee dans la dataTable!");
+            DataColumn RegDateColumn = this.table.Columns["RegistrationDate"] ?? throw new Exception("Colonne 'RegistrationDate' non trouvee dans la dataTable!");
+            DataColumn createdDateColumn = this.table.Columns["DateCreated"] ?? throw new Exception("Colonne 'DateCreated' non trouvee dans la dataTable!");
+            DataColumn modifiedDateColumn = this.table.Columns["DateModified"] ?? throw new Exception("Colonne 'DateModified' non trouvee dans la dataTable!");
+            DataColumn deletedDateColumn = this.table.Columns["DateDeleted"] ?? throw new Exception("Colonne 'DateDeleted non trouvee dans la dataTable!");
+
+
+            idColumn.AutoIncrement = true;
+            idColumn.AutoIncrementSeed = -1;
+            idColumn.AutoIncrementStep = -1;
+            idColumn.ReadOnly = true;
+
+            firstNameColumn.MaxLength = 64;
+            lastNameColumn.MaxLength = 64;
+            codeColumn.MaxLength = 15;
+
+            createdDateColumn.ReadOnly = true;
+            modifiedDateColumn.ReadOnly = true;
+            modifiedDateColumn.AllowDBNull = true;
+            deletedDateColumn.ReadOnly = true;
+            deletedDateColumn.AllowDBNull = true;
+
+
         }
 
         public void SaveChanges()
@@ -56,14 +83,17 @@ namespace Data_Access_Module.DAO
 
             SqlCommand insertCommand = this.connection.CreateCommand();
             insertCommand.CommandText = $"INSERT INTO {this.tableName} (FirstName, LastName, Code, RegistrationDate) " +
-                "VALUE (@firstName, @lastName, @code, @registrationDate);";
+                $"VALUES (@firstName, @lastName, @code, @registrationDate); SELECT * FROM {this.tableName} WHERE Id = SCOPE_IDENTITY();";
+
 
             insertCommand.Parameters.Add("@firstName", SqlDbType.NVarChar, 64, "FirstName");
             insertCommand.Parameters.Add("@lastName", SqlDbType.NVarChar, 64, "LastName");
             insertCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
             insertCommand.Parameters.Add("@registrationDate", SqlDbType.DateTime2, 7, "RegistrationDate");
 
+            insertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
             adapter.InsertCommand = insertCommand;
+            
 
             SqlCommand updateCommand = this.connection.CreateCommand();
             updateCommand.CommandText = $"UPDATE {this.tableName} SET FirstName = @firstName ,LastName = @lastName ,Code = @code ,RegistrationDate = @registrationDate " +

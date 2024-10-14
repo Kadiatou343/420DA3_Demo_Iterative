@@ -32,6 +32,28 @@ namespace Data_Access_Module.DAO
         {
             this.table.Clear();
             this.dataAdapter.Fill(table);
+
+            DataColumn idColumn = this.table.Columns["Id"] ?? throw new Exception("Colonne 'Id' dans la dataTable");
+            DataColumn nameColumn = this.table.Columns["Name"] ?? throw new Exception("Colonne 'Name' dans la dataTable");
+            DataColumn codeColumn = this.table.Columns["Code"] ?? throw new Exception("Colonne 'Code' dans la dataTable");
+            DataColumn durationColumn = this.table.Columns["Duration"] ?? throw new Exception("Colonne 'Duration' dans la dataTable");
+            DataColumn createdDateColumn = this.table.Columns["DateCreated"] ?? throw new Exception("Colonne 'DateCreated' non trouvee dans la dataTable!");
+            DataColumn modifiedDateColumn = this.table.Columns["DateModified"] ?? throw new Exception("Colonne 'DateModified' non trouvee dans la dataTable!");
+            DataColumn deletedDateColumn = this.table.Columns["DateDeleted"] ?? throw new Exception("Colonne 'DateDeleted non trouvee dans la dataTable!");
+
+            idColumn.AutoIncrement = true;
+            idColumn.AutoIncrementSeed = -1;
+            idColumn.AutoIncrementStep = -1;
+            idColumn.ReadOnly = true;
+
+            nameColumn.MaxLength = 164;
+            codeColumn.MaxLength = 15;
+
+            createdDateColumn.ReadOnly = true;
+            modifiedDateColumn.ReadOnly = true;
+            modifiedDateColumn.AllowDBNull = true;
+            deletedDateColumn.ReadOnly = true;
+            deletedDateColumn.AllowDBNull = true;
         }
 
         public void SaveChanges()
@@ -41,7 +63,17 @@ namespace Data_Access_Module.DAO
                 this.connection.Open();
             }
 
-            this.dataAdapter.Update(table);
+            try
+            {
+                this.dataAdapter.Update(table);
+            }
+            catch(DBConcurrencyException dbexc)
+            {
+                dbexc.Row?.RejectChanges();
+                dbexc.Row?.ClearErrors();
+                MessageBox.Show($"Erreur de concurrence sur la ligne {dbexc.Row?["Id"]} . Les chnagements ont ete annules ");
+            }
+
 
         }
 
@@ -49,35 +81,40 @@ namespace Data_Access_Module.DAO
         {
             SqlDataAdapter adapter = new SqlDataAdapter();
 
+            adapter.RowUpdating += OnRowUpdating;
+
             SqlCommand selectCommand = this.connection.CreateCommand();
             selectCommand.CommandText = $"SELECT * FROM {this.tableName} ;";
             adapter.SelectCommand = selectCommand;
 
             SqlCommand insertCommand = this.connection.CreateCommand();
             insertCommand.CommandText = $"INSERT INTO {this.tableName} (Name, Code, Duration) " +
-                $"VALUES (@name, @code, @duration);";
+                $"VALUES (@name, @code, @duration); SELECT * FROM {this.tableName} WHERE Id = SCOPE_IDENTITY()";
 
             insertCommand.Parameters.Add("@name", SqlDbType.NVarChar, 164, "Name");
             insertCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
-            insertCommand.Parameters.Add("@duration", SqlDbType.Int, 4, "Name");
+            insertCommand.Parameters.Add("@duration", SqlDbType.Int, 4, "Duration");
 
+            insertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
             adapter.InsertCommand = insertCommand;
+            
 
             SqlCommand updateCommand = this.connection.CreateCommand();
             updateCommand.CommandText = $"UPDATE {this.tableName} SET Name = @name, Code = @code, " +
-                $"Duration = @duration " +
+                $"Duration = @duration, " +
+                $"DateModified = @dateModified " +
                 $"WHERE Id = @id " +
-                $"AND Name = @oldName " +
-                $"AND Code = @code " +
-                $"AND Duration = @oldDuration ;";
+                $"AND (DateModified IS NULL OR DateModified = @oldDateModified) ;";
 
             updateCommand.Parameters.Add("@name", SqlDbType.NVarChar, 164, "Name");
             updateCommand.Parameters.Add("@code", SqlDbType.NVarChar, 15, "Code");
-            updateCommand.Parameters.Add("@duration", SqlDbType.Int, 4, "Name");
+            updateCommand.Parameters.Add("@duration", SqlDbType.Int, 4, "Duration");
+            updateCommand.Parameters.Add("@dateModified", SqlDbType.DateTime2, 7, "DateModified");
             updateCommand.Parameters.Add("@id", SqlDbType.Int, 4, "Id");
-            updateCommand.Parameters.Add("@oldName", SqlDbType.NVarChar, 164, "Name").SourceVersion = DataRowVersion.Original;
-            updateCommand.Parameters.Add("@oldCode", SqlDbType.NVarChar, 15, "Code").SourceVersion = DataRowVersion.Original;
-            updateCommand.Parameters.Add("@dolDuration", SqlDbType.Int, 4, "Name").SourceVersion = DataRowVersion.Original;
+            updateCommand.Parameters.Add("@oldDateModified", SqlDbType.DateTime2, 7, "DateModified").SourceVersion = DataRowVersion.Original;
+            //updateCommand.Parameters.Add("@oldName", SqlDbType.NVarChar, 164, "Name").SourceVersion = DataRowVersion.Original;
+            //updateCommand.Parameters.Add("@oldCode", SqlDbType.NVarChar, 15, "Code").SourceVersion = DataRowVersion.Original;
+            //updateCommand.Parameters.Add("@oldDuration", SqlDbType.Int, 4, "Name").SourceVersion = DataRowVersion.Original;
 
             adapter.UpdateCommand = updateCommand;
 
@@ -93,6 +130,13 @@ namespace Data_Access_Module.DAO
 
         }
 
+        private void OnRowUpdating(object sender, SqlRowUpdatingEventArgs args)
+        {
+            if (args.StatementType == StatementType.Update)
+            {
+                args.Command.Parameters["@dateModified"].Value = DateTime.Now;
+            }
+        }
 
         /*
 
